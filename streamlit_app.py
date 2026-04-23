@@ -46,7 +46,7 @@ def parse_args():
                         help="操作类型: install(安装), status(状态), update(更新), del(卸载), cat(查看节点)")
     parser.add_argument("--domain", "-d", dest="agn", help="设置自定义域名 (例如: xxx.trycloudflare.com 或 your.custom.domain)")
     parser.add_argument("--uuid", "-u", help="设置自定义UUID")
-    parser.add_argument("--port", "-p", dest="vmpt", type=int, help="设置自定义Vmess端口")
+    parser.add_argument("--port", "-p", dest="vmpt", type=int, help="设置自定义vless端口")
     parser.add_argument("--agk", "--token", dest="agk", help="设置 Argo Tunnel Token (用于Cloudflare Zero Trust命名隧道)")
     parser.add_argument("--user", "-U", dest="user", help="设置用户名（用于上传文件名）")
 
@@ -113,7 +113,7 @@ def print_usage():
     print("  \033[36mpython3 script.py del\033[0m                 - 卸载服务")
     print()
     print("\033[33m支持的环境变量:\033[0m")
-    print("  \033[36mexport vmpt=12345\033[0m                       - 设置自定义Vmess端口")
+    print("  \033[36mexport vmpt=12345\033[0m                       - 设置自定义vless端口")
     print("  \033[36mexport uuid=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx\033[0m - 设置自定义UUID")
     print("  \033[36mexport agn=your-domain.com\033[0m              - 设置自定义域名")
     print("  \033[36mexport agk=YOUR_ARGO_TUNNEL_TOKEN\033[0m       - 设置Argo Tunnel Token")
@@ -213,7 +213,7 @@ def generate_links(domain, port_vm_ws, uuid_str):
         "net": "ws", "type": "none", "host": domain, "path": ws_path_full,
         "tls": "tls", "sni": domain
     }
-    all_links.append(generate_vmess_link(direct_tls_config))
+    all_links.append(generate_vless_link(direct_tls_config))
     link_names.append(f"TLS-Direct-{domain}-443")
     link_configs_for_json_output.append(direct_tls_config)
 
@@ -224,7 +224,7 @@ def generate_links(domain, port_vm_ws, uuid_str):
         "net": "ws", "type": "none", "host": domain, "path": ws_path_full,
         "tls": ""
     }
-    all_links.append(generate_vmess_link(direct_http_config))
+    all_links.append(generate_vless_link(direct_http_config))
     link_names.append(f"HTTP-Direct-{domain}-80")
     link_configs_for_json_output.append(direct_http_config)
 
@@ -242,7 +242,7 @@ def generate_links(domain, port_vm_ws, uuid_str):
     list_content_color_file.append("\033[36m├───────────────────────────────────────────────────────────────┤\033[0m")
     list_content_color_file.append(f"\033[36m│ \033[32m域名 (Domain): \033[0m{domain}")
     list_content_color_file.append(f"\033[36m│ \033[32mUUID: \033[0m{uuid_str}")
-    list_content_color_file.append(f"\033[36m│ \033[32m本地Vmess端口 (Local VMess Port): \033[0m{port_vm_ws}")
+    list_content_color_file.append(f"\033[36m│ \033[32m本地vless端口 (Local vless Port): \033[0m{port_vm_ws}")
     list_content_color_file.append(f"\033[36m│ \033[32mWebSocket路径 (WS Path): \033[0m{ws_path_full}")
     list_content_color_file.append("\033[36m├───────────────────────────────────────────────────────────────┤\033[0m")
     list_content_color_file.append("\033[36m│ \033[33m所有节点列表 (All Nodes - 详细信息见 status 或 cat):\033[0m")
@@ -268,7 +268,7 @@ def generate_links(domain, port_vm_ws, uuid_str):
     print("\033[36m├───────────────────────────────────────────────────────────────┤\033[0m")
     print(f"\033[36m│ \033[32m域名 (Domain): \033[0m{domain}")
     print(f"\033[36m│ \033[32mUUID: \033[0m{uuid_str}")
-    print(f"\033[36m│ \033[32m本地Vmess端口 (Local VMess Port): \033[0m{port_vm_ws}")
+    print(f"\033[36m│ \033[32m本地vless端口 (Local vless Port): \033[0m{port_vm_ws}")
     print(f"\033[36m│ \033[32mWebSocket路径 (WS Path): \033[0m{ws_path_full}")
     print("\033[36m├───────────────────────────────────────────────────────────────┤\033[0m")
     print("\033[36m│ \033[33m所有节点链接 (带格式):\033[0m") # 标题
@@ -328,10 +328,10 @@ def install(args):
         uuid_str = uuid_input or str(uuid.uuid4())
     print(f"使用 UUID: {uuid_str}")
     write_debug_log(f"UUID: {uuid_str}")
-    # Vmess Port (vmpt)
+    # vless Port (vmpt)
     port_vm_ws_str = str(args.vmpt) if args.vmpt else os.environ.get("vmpt") or str(PORT)
     if not port_vm_ws_str or port_vm_ws_str == "0":
-        port_vm_ws_str = input(f"请输入自定义Vmess端口 (例如: 49999, 10000-65535, 留空则随机生成): ").strip()
+        port_vm_ws_str = input(f"请输入自定义vless端口 (例如: 49999, 10000-65535, 留空则随机生成): ").strip()
     if port_vm_ws_str:
         try:
             port_vm_ws = int(port_vm_ws_str)
@@ -343,8 +343,8 @@ def install(args):
             port_vm_ws = random.randint(10000, 65535)
     else:
         port_vm_ws = random.randint(10000, 65535)
-    print(f"使用 Vmess 本地端口: {port_vm_ws}")
-    write_debug_log(f"Vmess Port: {port_vm_ws}")
+    print(f"使用 vless 本地端口: {port_vm_ws}")
+    write_debug_log(f"vless Port: {port_vm_ws}")
     # Argo Tunnel Token (agk)
     argo_token = args.agk or os.environ.get("agk") or CF_TOKEN
     if not argo_token:
@@ -500,14 +500,14 @@ def install(args):
             "net": "ws", "type": "none", "host": final_domain, "path": ws_path_full,
             "tls": "tls", "sni": final_domain
         }
-        all_links.append(generate_vmess_link(direct_tls_config))
+        all_links.append(generate_vless_link(direct_tls_config))
         direct_http_config = {
             "ps": f"VLESS-HTTP-{hostname}-Direct-{final_domain[:15]}-80",
             "add": final_domain, "port": "80", "id": uuid_str, "aid": "0",
             "net": "ws", "type": "none", "host": final_domain, "path": ws_path_full,
             "tls": ""
         }
-        all_links.append(generate_vmess_link(direct_http_config))
+        all_links.append(generate_vless_link(direct_http_config))
         # 上传到API
         all_links_b64 = base64.b64encode("\n".join(all_links).encode()).decode()
         upload_to_api(all_links_b64, user_name)
